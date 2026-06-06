@@ -16,7 +16,7 @@ RE_LISTING = re.compile(r"leboncoin\.fr/(?:ad/locations/|.*?/)\d{6,}", re.I)
 
 class LeBonCoinScraper(BaseScraper):
     site = "leboncoin"
-    dynamic = True
+    dynamic = False   # bloqué DataDome de toute façon => échec rapide (~0.4s, pas de navigateur)
 
     def search_urls(self, cfg: dict) -> list[str]:
         return cfg.get("sites", {}).get("leboncoin", {}).get("search_urls", []) or []

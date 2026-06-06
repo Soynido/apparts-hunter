@@ -30,8 +30,12 @@ def _looks_blocked(status: Optional[int], html: str) -> bool:
 
 
 def fetch(url: str, *, dynamic: bool = True, wait_selector: Optional[str] = None,
-          timeout_ms: int = 45000, cookies: Optional[list[dict]] = None) -> FetchResult:
+          network_idle: bool = True, timeout_ms: int = 45000,
+          cookies: Optional[list[dict]] = None) -> FetchResult:
     """Récupère une page. `dynamic=True` => navigateur furtif (anti-bot).
+
+    `wait_selector` + `network_idle=False` = beaucoup plus rapide (on s'arrête dès que
+    les cartes d'annonces apparaissent au lieu d'attendre la fin du trafic réseau).
 
     Échoue proprement : renvoie un FetchResult avec blocked/error plutôt que de lever.
     """
@@ -39,7 +43,7 @@ def fetch(url: str, *, dynamic: bool = True, wait_selector: Optional[str] = None
     try:
         if dynamic:
             from scrapling.fetchers import StealthyFetcher
-            kwargs = dict(headless=headless, network_idle=True, timeout=timeout_ms)
+            kwargs = dict(headless=headless, network_idle=network_idle, timeout=timeout_ms)
             if wait_selector:
                 kwargs["wait_selector"] = wait_selector
             if cookies:
@@ -57,6 +61,9 @@ def fetch(url: str, *, dynamic: bool = True, wait_selector: Optional[str] = None
 
 class BaseScraper:
     site: str = "base"
+    dynamic: bool = True
+    wait_selector: Optional[str] = None   # accélère le rendu si défini
+    network_idle: bool = True             # mettre False avec wait_selector pour la vitesse
 
     def search_urls(self, cfg: dict) -> list[str]:
         """URLs de recherche à visiter (une par arrondissement en général)."""
@@ -71,7 +78,8 @@ class BaseScraper:
         listings: list[Listing] = []
         notes: list[str] = []
         for url in self.search_urls(cfg):
-            res = fetch(url, dynamic=self.dynamic)
+            res = fetch(url, dynamic=self.dynamic,
+                        wait_selector=self.wait_selector, network_idle=self.network_idle)
             if res.blocked or res.error or not res.html:
                 notes.append(
                     f"[{self.site}] bloqué/échec sur {url} "
@@ -85,5 +93,3 @@ class BaseScraper:
             except Exception as e:
                 notes.append(f"[{self.site}] parse error sur {url}: {type(e).__name__}: {e}")
         return listings, notes
-
-    dynamic: bool = True

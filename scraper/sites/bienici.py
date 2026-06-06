@@ -25,6 +25,8 @@ RE_URL_ARR = re.compile(r"/marseille-(\d{1,2})e?/", re.I)
 class BienIciScraper(BaseScraper):
     site = "bienici"
     dynamic = True
+    wait_selector = ".ad-overview"   # on s'arrête dès l'apparition des cartes (~5s au lieu de ~48s)
+    network_idle = False
 
     def search_urls(self, cfg: dict) -> list[str]:
         codes = cfg["criteria"]["postal_codes"]
