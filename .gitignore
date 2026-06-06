@@ -1,0 +1,15 @@
+# Environnements Python
+scrapling-env/
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Secrets
+.env
+*.local
+
+# Debug
+/tmp/
+probe_*.html
+*.log

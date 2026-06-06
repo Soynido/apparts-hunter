@@ -1,0 +1,43 @@
+# Configuration du chasseur d'appartements Marseille (scraping direct Scrapling).
+# Les secrets (ntfy topic, cookie Jinka) sont dans les variables d'environnement.
+
+# Sites activés. Bien'ici marche bien ; PAP best-effort (codes géo à fournir) ;
+# SeLoger/LeBonCoin bloqués DataDome (gardés pour bascule) ; Jinka nécessite un cookie.
+enabled_sites:
+  - bienici
+  - pap
+  - seloger
+  - leboncoin
+  - jinka
+
+criteria:
+  rooms_min: 3              # pièces (un T3 = 2 chambres)
+  bedrooms_min: 2          # chambres
+  rent_max: 1200           # loyer max en € (charges comprises)
+  surface_min: 60          # surface min en m²
+  arrondissements: [7, 8, 9]        # Marseille, strict proche-mer
+  postal_codes: [13007, 13008, 13009]
+  # Critères souples : false => on garde et on flague "à vérifier" ;
+  #                    true  => on rejette si l'info n'est pas confirmée dans l'annonce.
+  strict_exterior: false   # terrasse / balcon / jardin
+  strict_parking: false    # place de parking / garage
+
+# URLs de recherche par site. Bien'ici est généré automatiquement (cf. sites/bienici.py).
+# Pour PAP/SeLoger/LeBonCoin/Jinka, colle ici les URLs de résultats récupérées sur le site.
+sites:
+  pap:
+    search_urls: []        # ex: https://www.pap.fr/annonce/locations-marseille-8e-...-g<ID>...
+  seloger:
+    search_urls:
+      - "https://www.seloger.com/list.htm?projects=1&types=1&places=[{ci:130122}]&price=NaN/1200&rooms=3&surface=60/NaN"
+  leboncoin:
+    search_urls:
+      - "https://www.leboncoin.fr/recherche?category=10&locations=Marseille_13008__43.27_5.39_5000&real_estate_type=2&rooms=3&max=1200"
+  jinka:
+    search_urls:
+      - "https://www.jinka.fr/alerts"   # nécessite JINKA_COOKIE
+
+ntfy:
+  server: https://ntfy.sh
+  priority: 4              # 1=min ... 5=max
+  tags: house

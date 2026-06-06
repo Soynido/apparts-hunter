@@ -1,0 +1,5 @@
+scrapling[fetchers]>=0.4.8
+beautifulsoup4>=4.13
+lxml>=6.1
+requests>=2.32
+PyYAML>=6.0
