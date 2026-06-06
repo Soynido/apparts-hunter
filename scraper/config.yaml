@@ -21,6 +21,9 @@ criteria:
   #                    true  => on rejette si l'info n'est pas confirmée dans l'annonce.
   strict_exterior: false   # terrasse / balcon / jardin
   strict_parking: false    # place de parking / garage
+  # Appartement ENTIER uniquement (pas de colocation/chambre).
+  exclude_colocation: true
+  min_price_per_m2: 9      # rejette les "gros m² / petit loyer" (coloc déguisée ou arnaque)
 
 # URLs de recherche par site. Bien'ici est généré automatiquement (cf. sites/bienici.py).
 # Pour PAP/SeLoger/LeBonCoin/Jinka, colle ici les URLs de résultats récupérées sur le site.

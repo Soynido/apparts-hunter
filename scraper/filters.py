@@ -1,9 +1,17 @@
 """Application des critères de recherche (durs vs souples)."""
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from models import Listing
+
+# Mots-clés indiquant une colocation / location de chambre (à exclure : on veut un appart ENTIER).
+RE_COLOC = re.compile(
+    r"\bcoloc\w*|coliving|co-living|colive|chambre\s+(?:meubl\w+\s+)?(?:dans|en|à louer)"
+    r"|location\s+de\s+chambre|room\s+in|chambre\s+priv\w+",
+    re.I,
+)
 
 
 @dataclass
@@ -18,7 +26,17 @@ def evaluate(listing: Listing, cfg: dict) -> Verdict:
     c = cfg["criteria"]
     strict_ext = c.get("strict_exterior", False)
     strict_park = c.get("strict_parking", False)
+    min_ppm2 = c.get("min_price_per_m2", 9)
     flags: list[str] = []
+
+    # --- EXCLURE LES COLOCATIONS (on veut un appartement ENTIER) ---
+    haystack = f"{listing.title or ''} {listing.raw_text or ''} {listing.url}"
+    if c.get("exclude_colocation", True) and RE_COLOC.search(haystack):
+        return Verdict(False, "colocation / chambre")
+    # Loyer/m² anormalement bas => colocation déguisée ou arnaque (gros m², petit loyer).
+    if listing.price and listing.surface and listing.surface > 0:
+        if listing.price / listing.surface < min_ppm2:
+            return Verdict(False, f"{listing.price/listing.surface:.1f} €/m² < {min_ppm2} (coloc/arnaque ?)")
 
     # --- DURS (rejet si l'info est connue et non conforme) ---
     if listing.rooms is not None and listing.rooms < c["rooms_min"]:
@@ -52,11 +70,7 @@ def evaluate(listing: Listing, cfg: dict) -> Verdict:
     if listing.available_from:
         flags.append(f"dispo {listing.available_from}")
 
-    # Heuristique anti-arnaque : loyer anormalement bas pour la surface (Marseille ~15-25 €/m²),
-    # ou référence d'agence en email perso (gmail/hotmail/...) dans l'URL.
-    if listing.price and listing.surface and listing.surface > 0:
-        if listing.price / listing.surface < 8:
-            flags.append("⚠️ prix suspect (arnaque ?)")
+    # Référence d'agence en email perso (gmail/hotmail/...) dans l'URL => signal d'arnaque.
     if any(d in listing.url.lower() for d in ("gmail", "hotmail", "yahoo", "outlook")):
         flags.append("⚠️ contact perso (arnaque ?)")
 
