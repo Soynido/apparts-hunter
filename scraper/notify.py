@@ -11,7 +11,7 @@ MAX_IN_BODY = 25  # au-delà, on tronque le corps pour rester sous la limite ntf
 
 
 def _block(listing: Listing, idx: int) -> str:
-    """Un bloc par offre : ligne d'infos + URL BRUTE (auto-cliquable sur iOS/Android)."""
+    """Un bloc par offre en MARKDOWN (liens cliquables dans la page web ntfy)."""
     bits = [f"T{listing.rooms}" if listing.rooms else "T?"]
     if listing.surface:
         bits.append(f"{int(listing.surface)}m²")
@@ -19,10 +19,10 @@ def _block(listing: Listing, idx: int) -> str:
         bits.append(f"{listing.price}€")
     if listing.arrondissement:
         bits.append(f"{listing.arrondissement}e")
-    head = f"{idx}. " + " · ".join(bits) + f" ({listing.site})"
-    flags = f"\n   ⚠️ {', '.join(listing.flags)}" if listing.flags else ""
-    # URL brute sur sa propre ligne => détectée comme lien tappable automatiquement.
-    return f"{head}{flags}\n{listing.url}"
+    label = " · ".join(bits) + f" ({listing.site})"
+    flags = f" — ⚠️ {', '.join(listing.flags)}" if listing.flags else ""
+    # Lien markdown : rendu cliquable + copiable sur la page web du topic.
+    return f"{idx}. [{label}]({listing.url}){flags}"
 
 
 def notify_batch(listings: list[Listing], *, server: str, topic: str,
@@ -34,26 +34,26 @@ def notify_batch(listings: list[Listing], *, server: str, topic: str,
     blocks = [_block(x, i + 1) for i, x in enumerate(shown)]
     if n > MAX_IN_BODY:
         blocks.append(f"… + {n - MAX_IN_BODY} autre(s)")
-    body = "\n\n".join(blocks)
+    topic_url = f"{server.rstrip('/')}/{topic}"
+    body = "\n".join(blocks) + f"\n\n👉 Tous les liens cliquables : {topic_url}"
 
     title = f"{n} nouveau{'x' if n > 1 else ''} bien{'s' if n > 1 else ''} Marseille"
 
-    # Boutons d'action : jusqu'à 3 "view" qui ouvrent directement une annonce
-    # (labels/URLs en ASCII obligatoire dans l'en-tête).
-    actions = "; ".join(
-        f"view, Ouvrir #{i + 1}, {x.url}, clear=false"
-        for i, x in enumerate(shown[:3])
-    )
+    # Boutons "view" (max 3) : ouvrent directement une annonce ; + un bouton vers la
+    # page web du topic où TOUS les liens sont cliquables et copiables.
+    parts = [f"view, Ouvrir {i + 1}, {x.url}, clear=false" for i, x in enumerate(shown[:2])]
+    parts.append(f"view, Voir tout, {topic_url}, clear=false")
+    actions = "; ".join(parts)
 
     headers = {
         "Title": title,
         "Priority": str(priority),
         "Tags": tags,
-        "Click": shown[0].url,   # tap sur la notif => 1re annonce
-        "Actions": actions,      # boutons cliquables (max 3)
+        "Markdown": "yes",       # liens cliquables dans la page web / app Android
+        "Click": topic_url,      # tap sur la notif => page web avec tous les liens cliquables
+        "Actions": actions,
     }
-    resp = requests.post(f"{server.rstrip('/')}/{topic}",
-                         data=body.encode("utf-8"), headers=headers, timeout=20)
+    resp = requests.post(topic_url, data=body.encode("utf-8"), headers=headers, timeout=20)
     resp.raise_for_status()
     return True
 
