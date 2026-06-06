@@ -6,6 +6,7 @@ import os
 import requests
 
 from models import Listing
+from score import is_top_deal
 
 MAX_IN_BODY = 25  # au-delà, on tronque le corps pour rester sous la limite ntfy
 
@@ -21,8 +22,14 @@ def _block(listing: Listing, idx: int) -> str:
         bits.append(f"{listing.arrondissement}e")
     label = " · ".join(bits) + f" ({listing.site})"
     flags = f" — ⚠️ {', '.join(listing.flags)}" if listing.flags else ""
+    # Préfixe score : ⭐ pour les top deals, sinon la note brute.
+    if listing.score is not None:
+        star = "⭐ " if is_top_deal(listing.score) else ""
+        prefix = f"{star}[{listing.score}] "
+    else:
+        prefix = ""
     # Lien markdown : rendu cliquable + copiable sur la page web du topic.
-    return f"{idx}. [{label}]({listing.url}){flags}"
+    return f"{idx}. {prefix}[{label}]({listing.url}){flags}"
 
 
 def notify_batch(listings: list[Listing], *, server: str, topic: str,

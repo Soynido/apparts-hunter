@@ -26,6 +26,7 @@ class Listing:
     available_from: Optional[str] = None
     raw_text: str = ""              # contexte texte pour debug
     flags: list[str] = field(default_factory=list)  # ex: "parking à vérifier"
+    score: Optional[int] = None     # score de qualité 0-100 (plus haut = meilleure opportunité)
 
     def canonical_url(self) -> str:
         """URL sans query/fragment, host en minuscule — pour le dédoublonnage."""

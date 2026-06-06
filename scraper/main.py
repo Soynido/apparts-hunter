@@ -20,6 +20,7 @@ import yaml
 from filters import evaluate
 from models import Listing
 from notify import notify_batch, send_test
+from score import rank
 from sites import get_scrapers
 from state import load_seen, save_seen
 
@@ -78,14 +79,17 @@ def main() -> int:
     kept = filter_listings(listings, cfg)
     print(f"Annonces conformes aux critères : {len(kept)}")
 
-    # Dédoublonnage par clé stable.
+    # Scoring + classement (meilleures opportunités en premier).
+    kept = rank(kept, cfg)
+
+    # Dédoublonnage par clé stable (l'ordre trié est préservé).
     seen = load_seen(STATE_PATH)
     new = [x for x in kept if x.dedup_key() not in seen]
     print(f"Dont nouvelles (jamais notifiées) : {len(new)}")
 
     for x in new:
         flags = f"  [{', '.join(x.flags)}]" if x.flags else ""
-        print(f"  - {x.site} | T{x.rooms} {x.surface}m² {x.price}€ {x.arrondissement}e{flags}\n    {x.url}")
+        print(f"  - score {x.score} | {x.site} | T{x.rooms} {x.surface}m² {x.price}€ {x.arrondissement}e{flags}\n    {x.url}")
 
     if args.dry_run:
         print("\n[dry-run] aucune notif envoyée, état non modifié.")
